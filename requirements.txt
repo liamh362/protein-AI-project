@@ -1,5 +1,2 @@
 flask==3.0.0
 werkzeug==3.0.1
-numpy==1.26.3
-plotly==5.18.0
-gunicorn==21.2.0

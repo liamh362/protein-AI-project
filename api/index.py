@@ -1,42 +1,14 @@
 from flask import Flask, request, jsonify
-import sys
-import os
-
-# Add the parent directory to the Python path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from protein_analysis import ProteinAnalyzer
 
 app = Flask(__name__)
-analyzer = ProteinAnalyzer()
 
 @app.route('/', methods=['GET'])
 def home():
-    return """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Protein Analysis API</title>
-        <style>
-            body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-            pre { background: #f5f5f5; padding: 15px; border-radius: 5px; }
-        </style>
-    </head>
-    <body>
-        <h1>🧬 Protein Analysis API</h1>
-        <p>Use the /api/analyze endpoint to analyze protein sequences.</p>
-        <h2>Example Usage:</h2>
-        <pre>
-POST /api/analyze
-Content-Type: application/json
+    return jsonify({"message": "Protein Analysis API is running"})
 
-{
-    "sequence": "FVNQHLCGSHLVEAL"
-}
-        </pre>
-    </body>
-    </html>
-    """
+@app.route('/api/test', methods=['GET'])
+def test():
+    return jsonify({"status": "ok"})
 
 @app.route('/api/analyze', methods=['POST'])
 def analyze():
@@ -46,17 +18,10 @@ def analyze():
             return jsonify({'error': 'No sequence provided'}), 400
         
         sequence = data['sequence'].upper()
-        
-        # Validate sequence
-        if not all(aa in 'ACDEFGHIKLMNPQRSTVWY' for aa in sequence):
-            return jsonify({'error': 'Invalid sequence. Use only valid amino acid letters.'}), 400
-        
-        # Analyze sequence
-        results = analyzer.analyze_protein(sequence)
-        return jsonify(results)
+        return jsonify({
+            'sequence': sequence,
+            'length': len(sequence)
+        })
     except Exception as e:
-        print(f"Error: {str(e)}")  # Add logging
+        print(f"Error: {str(e)}")
         return jsonify({'error': str(e)}), 500
-
-# Vercel requires the app to be named 'app'
-app.debug = True  # Enable debug mode for better error messages
