@@ -1,14 +1,39 @@
 from flask import Flask, request, jsonify
-import os
-import sys
-
-# Add the parent directory to the Python path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from protein_analysis import ProteinAnalyzer
+import numpy as np
 
 app = Flask(__name__)
-analyzer = ProteinAnalyzer()
+
+class SimpleProteinAnalyzer:
+    def __init__(self):
+        self.hydrophobic = set("VILMFYW")
+        self.polar = set("STNQ")
+        self.charged = set("DEKR")
+        
+    def analyze_protein(self, sequence: str) -> dict:
+        """Basic protein sequence analysis."""
+        total_len = len(sequence)
+        
+        # Calculate amino acid composition
+        hydrophobic_content = sum(aa in self.hydrophobic for aa in sequence) / total_len
+        polar_content = sum(aa in self.polar for aa in sequence) / total_len
+        charged_content = sum(aa in self.charged for aa in sequence) / total_len
+        
+        # Calculate molecular weight (approximate)
+        avg_aa_weight = 110  # Average amino acid weight in Daltons
+        molecular_weight = total_len * avg_aa_weight
+        
+        return {
+            'sequence_length': total_len,
+            'molecular_weight': molecular_weight,
+            'composition': {
+                'hydrophobic': round(hydrophobic_content * 100, 2),
+                'polar': round(polar_content * 100, 2),
+                'charged': round(charged_content * 100, 2)
+            },
+            'sequence': sequence
+        }
+
+analyzer = SimpleProteinAnalyzer()
 
 @app.route('/')
 def home():
