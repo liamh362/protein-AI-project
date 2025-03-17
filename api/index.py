@@ -10,7 +10,7 @@ from protein_analysis import ProteinAnalyzer
 app = Flask(__name__)
 analyzer = ProteinAnalyzer()
 
-@app.route('/')
+@app.route('/', methods=['GET'])
 def home():
     return """
     <!DOCTYPE html>
@@ -24,10 +24,10 @@ def home():
     </head>
     <body>
         <h1>🧬 Protein Analysis API</h1>
-        <p>Use the /analyze endpoint to analyze protein sequences.</p>
+        <p>Use the /api/analyze endpoint to analyze protein sequences.</p>
         <h2>Example Usage:</h2>
         <pre>
-POST /analyze
+POST /api/analyze
 Content-Type: application/json
 
 {
@@ -38,7 +38,7 @@ Content-Type: application/json
     </html>
     """
 
-@app.route('/analyze', methods=['POST'])
+@app.route('/api/analyze', methods=['POST'])
 def analyze():
     data = request.get_json()
     if not data or 'sequence' not in data:
