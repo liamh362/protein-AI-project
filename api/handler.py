@@ -37,7 +37,106 @@ analyzer = SimpleProteinAnalyzer()
 
 @app.route('/')
 def home():
-    return jsonify({"message": "Protein Analysis API is running"})
+    return """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Protein Analysis Web App</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                max-width: 800px;
+                margin: 0 auto;
+                padding: 20px;
+                line-height: 1.6;
+            }
+            .container {
+                background-color: #f5f5f5;
+                padding: 20px;
+                border-radius: 8px;
+                margin-top: 20px;
+            }
+            input[type="text"] {
+                width: 100%;
+                padding: 10px;
+                margin: 10px 0;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+            }
+            button {
+                background-color: #4CAF50;
+                color: white;
+                padding: 10px 20px;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+            }
+            button:hover {
+                background-color: #45a049;
+            }
+            #result {
+                margin-top: 20px;
+                white-space: pre-wrap;
+            }
+            .error {
+                color: red;
+                margin-top: 10px;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>🧬 Protein Sequence Analyzer</h1>
+        
+        <div class="container">
+            <h2>Enter Protein Sequence</h2>
+            <input type="text" id="sequence" placeholder="Enter protein sequence (e.g., FVNQHLCGSHLVEAL)">
+            <button onclick="analyzeProtein()">Analyze</button>
+            <div id="result"></div>
+        </div>
+
+        <script>
+        function analyzeProtein() {
+            const sequence = document.getElementById('sequence').value;
+            if (!sequence) {
+                document.getElementById('result').innerHTML = '<div class="error">Please enter a protein sequence</div>';
+                return;
+            }
+
+            fetch('/api/analyze', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ sequence: sequence })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    document.getElementById('result').innerHTML = `<div class="error">${data.error}</div>`;
+                } else {
+                    const result = `
+                        <h3>Analysis Results:</h3>
+                        <p>Sequence: ${data.sequence}</p>
+                        <p>Length: ${data.sequence_length} amino acids</p>
+                        <p>Molecular Weight: ${data.molecular_weight} Daltons</p>
+                        <h4>Composition:</h4>
+                        <ul>
+                            <li>Hydrophobic: ${data.composition.hydrophobic}%</li>
+                            <li>Polar: ${data.composition.polar}%</li>
+                            <li>Charged: ${data.composition.charged}%</li>
+                        </ul>
+                    `;
+                    document.getElementById('result').innerHTML = result;
+                }
+            })
+            .catch(error => {
+                document.getElementById('result').innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            });
+        }
+        </script>
+    </body>
+    </html>
+    """
 
 @app.route('/api/analyze', methods=['POST'])
 def analyze():
