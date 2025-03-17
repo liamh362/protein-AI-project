@@ -169,62 +169,79 @@ class ProteinAnalyzer:
                     "description": info["description"]
                 })
         
-        # Sliding window analysis for potential domains
-        window_size = 10
-        for i in range(len(sequence) - window_size + 1):
-            window = sequence[i:i + window_size]
+        if not domains:  # Only do sliding window analysis if no known domains found
+            window_size = 10
+            min_score = 50.0  # Minimum confidence score to consider
             
-            # Check for hydrophobic regions (potential transmembrane domains)
-            hydrophobic_count = sum(aa in self.hydrophobic for aa in window)
-            if hydrophobic_count >= 7:  # 70% hydrophobic
-                domains.append({
-                    "name": "Transmembrane domain",
-                    "start": i + 1,
-                    "end": i + window_size,
-                    "score": (hydrophobic_count / window_size) * 100,
-                    "description": "Potential membrane-spanning region"
-                })
+            # Track the best domain for each type
+            best_domains = {
+                "hydrophobic": {"score": 0, "start": 0, "end": 0},
+                "charged": {"score": 0, "start": 0, "end": 0},
+                "mixed": {"score": 0, "start": 0, "end": 0}
+            }
             
-            # Check for charged regions (potential binding sites)
-            charged_count = sum(aa in self.charged for aa in window)
-            if charged_count >= 5:  # 50% charged
-                domains.append({
-                    "name": "Charged domain",
-                    "start": i + 1,
-                    "end": i + window_size,
-                    "score": (charged_count / window_size) * 100,
-                    "description": "Potential binding or interaction site"
-                })
+            # Analyze sequence in windows
+            for i in range(len(sequence) - window_size + 1):
+                window = sequence[i:i + window_size]
+                
+                # Calculate properties
+                hydrophobic = sum(aa in self.hydrophobic for aa in window) / window_size
+                charged = sum(aa in self.charged for aa in window) / window_size
+                polar = sum(aa in self.polar for aa in window) / window_size
+                
+                # Update best domains if this window has higher scores
+                if hydrophobic > 0.5 and hydrophobic * 100 > best_domains["hydrophobic"]["score"]:
+                    best_domains["hydrophobic"] = {
+                        "score": hydrophobic * 100,
+                        "start": i + 1,
+                        "end": i + window_size
+                    }
+                
+                if charged > 0.4 and charged * 100 > best_domains["charged"]["score"]:
+                    best_domains["charged"] = {
+                        "score": charged * 100,
+                        "start": i + 1,
+                        "end": i + window_size
+                    }
+                
+                if abs(hydrophobic - charged) < 0.2 and max(hydrophobic, charged) > 0.3:
+                    score = max(hydrophobic, charged) * 100
+                    if score > best_domains["mixed"]["score"]:
+                        best_domains["mixed"] = {
+                            "score": score,
+                            "start": i + 1,
+                            "end": i + window_size
+                        }
+            
+            # Add the best domains that meet the minimum score threshold
+            domain_descriptions = {
+                "hydrophobic": "Region rich in water-fearing amino acids, likely buried in protein core or membrane-interacting",
+                "charged": "Region rich in charged amino acids, potential binding or interaction site",
+                "mixed": "Region with mixed amino acid properties, possible functional site"
+            }
+            
+            for domain_type, info in best_domains.items():
+                if info["score"] > min_score:
+                    domains.append({
+                        "name": f"{domain_type.title()} domain",
+                        "start": info["start"],
+                        "end": info["end"],
+                        "score": info["score"],
+                        "description": domain_descriptions[domain_type]
+                    })
         
-        # If no domains found, add a default domain based on sequence properties
+        # Sort domains by score (highest confidence first)
+        domains.sort(key=lambda x: x["score"], reverse=True)
+        
+        # If still no domains found, add a general domain
         if not domains:
-            hydrophobic_content = sum(aa in self.hydrophobic for aa in sequence) / len(sequence)
-            charged_content = sum(aa in self.charged for aa in sequence) / len(sequence)
-            
-            if hydrophobic_content > 0.4:
-                domains.append({
-                    "name": "Hydrophobic region",
-                    "start": 1,
-                    "end": len(sequence),
-                    "score": hydrophobic_content * 100,
-                    "description": "Region rich in hydrophobic amino acids"
-                })
-            elif charged_content > 0.3:
-                domains.append({
-                    "name": "Charged region",
-                    "start": 1,
-                    "end": len(sequence),
-                    "score": charged_content * 100,
-                    "description": "Region rich in charged amino acids"
-                })
-            else:
-                domains.append({
-                    "name": "Mixed region",
-                    "start": 1,
-                    "end": len(sequence),
-                    "score": 50.0,
-                    "description": "Region with mixed amino acid properties"
-                })
+            domains.append({
+                "name": "Mixed region",
+                "start": 1,
+                "end": len(sequence),
+                "score": 50.0,
+                "description": "Region with mixed amino acid properties"
+            })
         
         return domains
 
